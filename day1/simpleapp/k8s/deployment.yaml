@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-deployment
+  labels:
+    app: flask
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      imagePullSecrets:
+        - name: ecr-secret # secret name
+      containers:
+      - name: app
+        image: 879381241087.dkr.ecr.ap-south-1.amazonaws.com/kind-static-app:1.0
+         # Always, Never, IfNotPresent
+        imagePullPolicy: Always # default is IfNotPresent 
+        ports:
+        - containerPort: 5000

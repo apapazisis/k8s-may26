@@ -62,4 +62,4 @@ Credentials must match `secret.yaml` in this folder (`POSTGRES_USER`, `POSTGRES_
 
 
 # postgres link will loo like
-postgresql://<username>:<password>@<db_host>/<db_name>
+postgresql://<username>:<password>@<db_host>:<port>/<db_name>

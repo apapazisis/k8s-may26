@@ -61,3 +61,17 @@ spec:
   - port: 80
     targetPort: 80
   type: ClusterIP
+
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: frontend
+#   namespace: 3-tier-app-eks
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: frontend
+#   ports:
+#   - port: 80
+#     targetPort: 80

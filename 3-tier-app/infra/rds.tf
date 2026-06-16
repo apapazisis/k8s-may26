@@ -45,6 +45,7 @@ resource "random_password" "db_password" {
   override_special = "abcdgktyhtfAZVNNHDD1223434"
 }
 
+
 # create the rds instance
 
 resource "aws_db_instance" "postgres" {

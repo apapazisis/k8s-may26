@@ -11,6 +11,30 @@ resource "aws_subnet" "rds_1" {
   }
 }
 
+resource "aws_security_group" "rds" {
+  name   = "k8s-3tier-rds-sg"
+  vpc_id = data.aws_vpc.eks_vpc.id
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    # security group of eks nodes can be added here instead of
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "k8s-3tier-rds-sg"
+  }
+}
+
 resource "aws_subnet" "rds_2" {
   cidr_block        = "10.0.6.0/24"
   availability_zone = "ap-south-1b"
@@ -50,17 +74,17 @@ resource "random_password" "db_password" {
 
 resource "aws_db_instance" "postgres" {
   identifier            = "devopsdozo-db"
-  allocated_storage     = 10
-  max_allocated_storage = 20
+  allocated_storage     = 30
+  max_allocated_storage = 50
   engine                = "postgres"
-  engine_version        = 14.15
-  instance_class        = "db.t3.micro"
+  engine_version        = 17.5
+  instance_class        = "db.t3.medium"
   username              = "postgres"
   password              = random_password.db_password.result
   port                  = 5432
   publicly_accessible   = false
   db_subnet_group_name  = aws_db_subnet_group.postgres.id
-  ca_cert_identifier    = var.db_default_settings.ca_cert_name
+  ca_cert_identifier    = "rds-ca-rsa2048-g1"
   storage_encrypted     = true
   storage_type          = "gp3"
   kms_key_id            = aws_kms_key.env_kms.arn
@@ -94,7 +118,7 @@ resource "aws_secretsmanager_secret" "db_link" {
 
 resource "aws_secretsmanager_secret_version" "dbs_secret_val" {
   secret_id     = aws_secretsmanager_secret.db_link.id
-  secret_string = "postgresql://${var.db_default_settings.db_admin_username}:${random_password.db_password.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
+  secret_string = "postgresql://${aws_db_instance.postgres.username}:${random_password.db_password.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${aws_db_instance.postgres.db_name}"
 
   lifecycle {
     create_before_destroy = true

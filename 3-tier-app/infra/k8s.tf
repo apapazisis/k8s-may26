@@ -72,9 +72,47 @@ resource "kubernetes_config_map" "frontend" {
 depends_on = [ kubernetes_namespace.namespace ]
 }
 
+# backend service
 
+resource "kubernetes_service" "backend" {
+  metadata {
+    name = "backend"
+    namespace = var.app_namepace
+  }
 
+  spec {
+    selector = {
+      app = "backend"
+    }
+    port {
+      port = 8000
+    }
+    type = "ClusterIP"
+  }
 
+  depends_on = [ kubernetes_namespace.namespace ]
+}
+
+# frontend service
+
+resource "kubernetes_service" "frontend" {
+  metadata {
+    name = "frontend"
+    namespace = var.app_namepace
+  }
+
+  spec {
+    selector = {
+      app = "frontend"
+    }
+    port {
+      port = 80
+    }
+    type = "ClusterIP"
+  }
+
+  depends_on = [ kubernetes_namespace.namespace ]
+}
 
 # ingress   
 

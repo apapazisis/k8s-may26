@@ -27,3 +27,9 @@ variable "app_subdomain" {
   type = string
   default = "devopsdozo"
 }
+
+variable "prefix" {
+  description = "The prefix of the application"
+  type = string
+  default = "3tier-devopsdozo"
+}

@@ -20,6 +20,12 @@ on:
           - apply
           - destroy
 
+      aws_region:
+        description: "AWS region"
+        required: true
+        type: string
+        default: "ap-south-1"
+
       terraform_version:
         description: "Terraform version"
         required: false

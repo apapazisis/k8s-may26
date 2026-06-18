@@ -3,6 +3,11 @@
 name: 3-tier-build-deploy-advanced
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '3-tier-app/app/**'
   workflow_dispatch:
 
 

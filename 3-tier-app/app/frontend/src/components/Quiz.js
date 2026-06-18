@@ -242,10 +242,10 @@ function Quiz() {
                   {question.options.map((option, optionIndex) => (
                     <label
                       key={optionIndex}
-                      className={`flex items-center p-3 rounded-lg cursor-pointer border transition-colors ${
+                      className={`flex items-center p-3 rounded-lg cursor-pointer border transition-colors focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-1 ${
                         answers[question.id] === optionIndex
-                          ? 'bg-blue-50 border-blue-300'
-                          : 'border-gray-200 hover:bg-gray-50'
+                          ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200'
+                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                       }`}
                     >
                       <input

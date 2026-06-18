@@ -12,8 +12,9 @@ import WikiEditor from './components/wiki/WikiEditor';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
+        <main className="pb-12">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/quiz/:topic" element={<Quiz />} />
@@ -27,6 +28,7 @@ function App() {
           <Route path="/wiki/edit/:slug" element={<WikiEditor />} />
           <Route path="/wiki/:slug" element={<WikiPage />} />
         </Routes>
+        </main>
       </div>
     </Router>
   );

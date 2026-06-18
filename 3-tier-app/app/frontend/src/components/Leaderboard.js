@@ -167,11 +167,25 @@ function Leaderboard() {
         )}
 
         {loading ? (
-          <p className="text-center py-8 text-gray-500">Loading rankings...</p>
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div
+              className="h-7 w-7 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin"
+              role="status"
+              aria-label="Loading rankings"
+            />
+            <p className="text-gray-500">Loading rankings...</p>
+          </div>
         ) : entries.length === 0 ? (
-          <p className="text-center py-8 text-gray-500">
-            No scores yet. Be the first to take a quiz!
-          </p>
+          <div className="text-center py-12 px-4">
+            <p className="text-gray-600 font-medium mb-1">No scores yet</p>
+            <p className="text-sm text-gray-500 mb-6">Be the first to take a quiz and claim the top spot.</p>
+            <Link
+              to="/"
+              className="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              Take a Quiz
+            </Link>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -253,7 +267,7 @@ function Leaderboard() {
             value={playerLookup}
             onChange={(e) => setPlayerLookup(e.target.value)}
             placeholder="Enter your player name"
-            className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <button
             type="submit"

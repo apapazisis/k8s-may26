@@ -141,6 +141,9 @@ resource "kubernetes_ingress_v1" "app_ingress_tls" {
 
       # Tags for the ALB
       "alb.ingress.kubernetes.io/tags" = "Environment=production,ManagedBy=Terraform,Name=${var.app_subdomain}-ingress"
+
+      # ALB group annotation
+      "alb.ingress.kubernetes.io/group.name" = "devopsdozo"
     }
   }
 

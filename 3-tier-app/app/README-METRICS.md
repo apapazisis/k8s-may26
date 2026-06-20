@@ -4,22 +4,58 @@ This document describes browser-side metrics for the DevOps Quiz SPA, how they r
 
 ## Architecture
 
-SPAs cannot be scraped directly by Prometheus. The app uses a standard relay pattern:
+SPAs cannot be scraped directly by Prometheus. The app uses a standard relay pattern for **browser business metrics**, plus a separate **server scrape** for frontend infrastructure metrics:
 
 ```text
 Browser (React)  →  POST /api/telemetry  →  backend Prometheus registry  →  GET /metrics  →  Prometheus  →  Grafana
+Frontend (Express)  →  GET /metrics (port 9091)  →  Prometheus (ServiceMonitor)  →  Grafana
 ```
 
-The React app batches UI events and sends them to a minimal backend telemetry receiver. Those events increment `frontend_*` counters and histograms on the **same** `/metrics` endpoint the backend already exposes. No Pushgateway or extra infra is required.
+The React app batches UI events and sends them to a minimal backend telemetry receiver. Those events increment `frontend_*` counters and histograms on the **backend** `/metrics` endpoint. No Pushgateway or extra infra is required.
+
+The frontend Express server also exposes its own `/metrics` endpoint (process + HTTP server metrics). Prometheus scrapes this via a dedicated frontend ServiceMonitor — separate from the backend job.
+
+### Two Prometheus scrape targets
+
+| Target | ServiceMonitor | Endpoint | What it measures |
+|--------|----------------|----------|------------------|
+| **Backend** | `devops-quiz-backend` | `backend:8000/metrics` | API request handling, quiz lifecycle, DB-backed counters, **and relayed browser metrics** (`frontend_page_views_total`, `frontend_quiz_ui_events_total`, …) |
+| **Frontend** | `devops-quiz-frontend` | `frontend:9091/metrics` | Express **server** metrics: HTTP request rate/latency, Node.js process CPU/memory |
 
 ### Distinction from backend metrics
 
 | Source | Examples | Meaning |
 |--------|----------|---------|
 | **Backend** (`http_requests_total`, `quiz_starts_total`, …) | Server-side request handling, DB-backed quiz lifecycle | What the API actually processed |
-| **Frontend** (`frontend_*`) | Page views, UI abandon/complete, client fetch failures, Web Vitals | What the user experienced in the browser |
+| **Frontend** (`frontend_*`) | Page views, UI abandon/complete, client fetch failures, Web Vitals | What the user experienced in the browser (relayed to backend `/metrics`) |
+| **Frontend server** (`frontend_server_*`, `frontend_process_*`) | HTTP requests to Express, process CPU/memory | Frontend pod health and traffic (scraped directly from frontend Service) |
 
-Both appear on `/metrics`, but measure different things. For example, `quiz_starts_total` increments when the backend creates a session; `frontend_quiz_ui_events_total{event="quiz_started"}` increments when the quiz UI loads successfully.
+Both `frontend_*` business metrics and backend metrics appear on the **backend** `/metrics`. Frontend **server** metrics appear only on the **frontend** `/metrics` endpoint.
+
+---
+
+## Frontend server metrics (direct scrape)
+
+Exposed by the Express server at `GET /metrics` on port **9091** (cluster-internal; port 80 is ALB-facing). Instrumented in `frontend/server.js` via `prom-client`.
+
+### `frontend_server_http_requests_total` (Counter)
+
+| Labels | Description |
+|--------|-------------|
+| `method` | HTTP method |
+| `path` | Normalized route (`/health`, `/metrics`, `/api/*`, `/static/*`, `/*`) |
+| `status` | Response status code |
+
+### `frontend_server_http_request_duration_seconds` (Histogram)
+
+| Labels | Description |
+|--------|-------------|
+| `method` | HTTP method |
+| `path` | Normalized route |
+
+### `frontend_process_*` (Gauge/Counter)
+
+Default Node.js process metrics from `prom-client` (CPU, memory, event loop lag, etc.).
 
 ---
 
@@ -135,19 +171,48 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: devops-quiz-backend
+  namespace: 3-tier-app-eks
   labels:
-    release: prometheus
+    release: kube-prometheus-stack
 spec:
+  namespaceSelector:
+    matchNames:
+      - 3-tier-app-eks
   selector:
     matchLabels:
-      app: devops-quiz-backend
+      app: backend
   endpoints:
-    - port: http
-      path: /metrics
-      interval: 15s
+    - path: /metrics
+      interval: 30s
+      port: http
 ```
 
-Adjust `selector.matchLabels` and `port` to match your backend Service manifest.
+The backend Service must expose a named port `metrics` on 9091 and carry label `app: backend` (see `3-tier-app/k8s/menifests/backend.yaml`).
+
+### Frontend ServiceMonitor
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: devops-quiz-frontend
+  namespace: 3-tier-app-eks
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - 3-tier-app-eks
+  selector:
+    matchLabels:
+      app: frontend
+  endpoints:
+    - path: /metrics
+      interval: 30s
+      port: metrics
+```
+
+The frontend Service must expose a named port `metrics` on 9091 (and `http` on 80 for the ALB) with label `app: frontend` (see `3-tier-app/k8s/menifests/frontend.yaml`). Port 9091 is used for Prometheus because ALB target-group security groups typically block in-cluster access to pod port 80.
 
 ---
 
@@ -284,3 +349,4 @@ CI=true npm test -- --watchAll=false
 | Web Vitals | `frontend/src/index.js` |
 | Telemetry receiver | `backend/app/routes/telemetry_routes.py` |
 | Prometheus definitions | `backend/app/frontend_metrics.py` |
+| Frontend server `/metrics` | `frontend/server.js` |
